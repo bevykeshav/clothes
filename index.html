@@ -32,6 +32,16 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 .nrow{display:flex;flex-wrap:wrap;gap:5px}
 .nc{display:inline-flex;align-items:center;gap:4px;font-size:15px;line-height:1.2;padding:2px 8px;border:1.5px solid var(--ink-soft);border-radius:12px;cursor:pointer}
 .nc input{margin:0;width:16px;height:16px;accent-color:var(--danger)}
+.slot .chg{position:absolute;left:6px;top:6px;z-index:2;font:inherit;font-size:14px;line-height:1.2;padding:3px 9px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer}
+.chg:focus-visible,.lbbar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:20;display:flex;flex-direction:column}
+.lb[hidden]{display:none}
+.lbbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;color:#fff;font-size:15px}
+.lbbar button{font:inherit;font-size:17px;font-weight:700;color:#fff;background:transparent;border:2px solid #fff;border-radius:6px;padding:4px 14px;cursor:pointer}
+.lbs{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+.lbs.z{display:block}
+.lbs img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+.lbs.z img{max-width:none;max-height:none;width:250%;cursor:zoom-out}
 .msg{color:var(--danger);font-size:15px;text-align:center;min-height:1.2em}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:10}
 .sheet[hidden]{display:none}
@@ -54,6 +64,10 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
   <button class="opt" id="gal" type="button">गैलरी से चुनें</button>
   <button class="opt cancel" id="cancel" type="button">रद्द करो</button>
  </div>
+</div>
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="फोटो बड़ी करके देखें">
+ <div class="lbbar"><span>फोटो पर दबाएँ, बड़ी/छोटी होगी</span><button id="lbx" type="button">बंद करें</button></div>
+ <div class="lbs" id="lbs"><img id="lbimg" alt="बड़ी फोटो"></div>
 </div>
 <input id="camIn" type="file" accept="image/*" capture="environment" hidden>
 <input id="galIn" type="file" accept="image/*" hidden>
@@ -102,7 +116,31 @@ $("cam").onclick=function(){$("sheet").hidden=true;$("camIn").click();};
 $("gal").onclick=function(){$("sheet").hidden=true;$("galIn").click();};
 $("cancel").onclick=closeSheet;
 $("sheet").onclick=function(e){if(e.target===$("sheet"))closeSheet();};
-document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("sheet").hidden)closeSheet();});
+var lbTrigger=null;
+function openLb(src,btn){
+ lbTrigger=btn;
+ $("lbimg").src=src;
+ $("lbs").classList.remove("z");
+ $("lb").hidden=false;
+ $("lbs").scrollTop=0;$("lbs").scrollLeft=0;
+ $("lbx").focus();
+}
+function closeLb(){
+ $("lb").hidden=true;
+ if(lbTrigger&&document.body.contains(lbTrigger))lbTrigger.focus();
+}
+$("lbx").onclick=closeLb;
+$("lbimg").onclick=function(){
+ var s=$("lbs");
+ s.classList.toggle("z");
+ s.scrollTop=0;s.scrollLeft=0;
+};
+$("lbs").onclick=function(e){if(e.target===$("lbs"))closeLb();};
+document.addEventListener("keydown",function(e){
+ if(e.key!=="Escape")return;
+ if(!$("lb").hidden)closeLb();
+ else if(!$("sheet").hidden)closeSheet();
+});
 
 function onFile(e){
  var f=e.target.files&&e.target.files[0];
@@ -151,7 +189,13 @@ function slot(day,which,label,withNeeds){
  b.onclick=function(){openSheet(key,b);};
  if(store[key]){
   var im=el("img");im.src=store[key];im.alt=day+" का कपड़ा";area.appendChild(im);
+  b.setAttribute("aria-label",day+" – फोटो बड़ी करके देखें");
+  b.onclick=function(){openLb(store[key],b);};
   area.appendChild(b);
+  var ch=el("button","chg","बदलो");ch.type="button";
+  ch.setAttribute("aria-label",day+" – फोटो बदलें");
+  ch.onclick=function(e){e.stopPropagation();openSheet(key,ch);};
+  area.appendChild(ch);
   var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","फोटो हटाएँ");
   x.onclick=function(e){e.stopPropagation();delete store[key];save();render();};
   area.appendChild(x);
