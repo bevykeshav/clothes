@@ -23,8 +23,14 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 .slot .pick:focus-visible{outline:3px solid var(--ink);outline-offset:-5px}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .slot .x{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--paper);color:var(--danger);font-size:18px;line-height:1;cursor:pointer;z-index:2}
-.slot .x:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.x:focus-visible,.opt:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .msg{color:var(--danger);font-size:15px;text-align:center;min-height:1.2em}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet[hidden]{display:none}
+.panel{width:100%;max-width:520px;background:var(--paper);border:2.5px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.panel h3{margin:0 0 4px;text-align:center;font-size:19px}
+.opt{font:inherit;font-size:19px;font-weight:700;padding:12px;border:2.5px solid var(--line);border-radius:6px;background:transparent;color:var(--ink);cursor:pointer}
+.opt.cancel{font-weight:400;border-color:var(--ink-soft);color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -32,17 +38,30 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
  <div class="msg" id="msg" role="status"></div>
  <div id="days"></div>
 </main>
+
+<div class="sheet" id="sheet" hidden>
+ <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+  <h3 id="sheetT">फोटो कैसे जोड़ें?</h3>
+  <button class="opt" id="cam" type="button">कैमरा से फोटो खींचें</button>
+  <button class="opt" id="gal" type="button">गैलरी से चुनें</button>
+  <button class="opt cancel" id="cancel" type="button">रद्द करो</button>
+ </div>
+</div>
+<input id="camIn" type="file" accept="image/*" capture="environment" hidden>
+<input id="galIn" type="file" accept="image/*" hidden>
+
 <script>
 (function(){
 var KEY="kapde_din_wise_v1";
 var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-var store={};
+var store={},curKey=null,trigger=null;
 try{store=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){store={};}
+var $=function(id){return document.getElementById(id)};
+function say(t){$("msg").textContent=t;}
 function save(){
- try{localStorage.setItem(KEY,JSON.stringify(store));$msg("");return true;}
- catch(e){$msg("जगह भर गई, कुछ फोटो हटाइए।");return false;}
+ try{localStorage.setItem(KEY,JSON.stringify(store));say("");return true;}
+ catch(e){say("जगह भर गई, कुछ फोटो हटाइए।");return false;}
 }
-function $msg(t){document.getElementById("msg").textContent=t;}
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 function shrink(file){
  return new Promise(function(res,rej){
@@ -60,36 +79,56 @@ function shrink(file){
   fr.readAsDataURL(file);
  });
 }
+
+function openSheet(key,btn){
+ curKey=key;trigger=btn;
+ $("sheet").hidden=false;
+ $("cam").focus();
+}
+function closeSheet(){
+ $("sheet").hidden=true;
+ if(trigger&&document.body.contains(trigger))trigger.focus();
+}
+$("cam").onclick=function(){$("sheet").hidden=true;$("camIn").click();};
+$("gal").onclick=function(){$("sheet").hidden=true;$("galIn").click();};
+$("cancel").onclick=closeSheet;
+$("sheet").onclick=function(e){if(e.target===$("sheet"))closeSheet();};
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("sheet").hidden)closeSheet();});
+
+function onFile(e){
+ var f=e.target.files&&e.target.files[0];
+ var key=curKey;
+ e.target.value="";
+ if(!f||!key)return;
+ shrink(f).then(function(src){
+  var old=store[key];store[key]=src;
+  if(!save()){if(old)store[key]=old;else delete store[key];}
+  render();
+ }).catch(function(){say("फोटो पढ़ नहीं पाए, दूसरी फोटो आज़माइए।");});
+}
+$("camIn").onchange=onFile;
+$("galIn").onchange=onFile;
+
 function slot(day,which,label){
  var key=day+":"+which;
  var box=el("div","slot");
- var inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.hidden=true;
  var b=el("button","pick");b.type="button";
  b.setAttribute("aria-label",day+" – "+label);
+ b.onclick=function(){openSheet(key,b);};
  if(store[key]){
   var im=el("img");im.src=store[key];im.alt=day+" का कपड़ा";box.appendChild(im);
+  box.appendChild(b);
   var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","फोटो हटाएँ");
   x.onclick=function(e){e.stopPropagation();delete store[key];save();render();};
-  b.onclick=function(){inp.click();};
-  box.appendChild(b);box.appendChild(x);
+  box.appendChild(x);
  }else{
   b.textContent="फोटो जोड़ें";
-  b.onclick=function(){inp.click();};
   box.appendChild(b);
  }
- inp.onchange=function(){
-  var f=inp.files&&inp.files[0];if(!f)return;
-  shrink(f).then(function(src){
-   var old=store[key];store[key]=src;
-   if(!save()){if(old)store[key]=old;else delete store[key];}
-   render();
-  }).catch(function(){$msg("फोटो पढ़ नहीं पाए, दूसरी फोटो आज़माइए।");});
- };
- box.appendChild(inp);
  return box;
 }
 function render(){
- var wrap=document.getElementById("days");wrap.textContent="";
+ var wrap=$("days");wrap.textContent="";
  var t=new Date().getDay();
  for(var i=0;i<7;i++){
   var d=DAYS[(t+i)%7];
