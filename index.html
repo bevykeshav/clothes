@@ -38,14 +38,17 @@ main{max-width:1040px;margin:0 auto;padding:0 16px 40px;display:grid;grid-templa
 .sm{font:inherit;font-size:14px;line-height:1.2;padding:3px 10px;border:2px solid var(--line);border-radius:4px;background:transparent;color:var(--ink);cursor:pointer}
 .sm.go{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .sm[disabled]{opacity:.6;cursor:default}
-.add:focus-visible,.chip:focus-visible,.x:focus-visible,.sm:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.add:focus-visible,.chip:focus-visible,.x:focus-visible,.sm:focus-visible,select:focus-visible,input:focus-visible,.th:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .tag{display:inline-block;font-size:13px;line-height:1.3;padding:0 8px;border-radius:9px;border:1.5px solid}
 .tag.dirty{color:var(--danger);border-color:var(--danger)}
 .tag.clean{color:var(--ok);border-color:var(--ok)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.looks{display:grid;grid-template-columns:1fr;gap:14px}
 .card{border:2px solid var(--line);border-radius:4px;background:var(--paper);padding:5px;position:relative}
 .card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:2px}
 .card input.nm{width:100%;font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--ink-soft);margin-top:4px;padding:1px 2px}
+.look{padding:8px}
+.look img.mdl{max-height:440px}
 .row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;font-size:14px}
 .chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
 .chip{font:inherit;font-size:13px;line-height:1.1;padding:2px 5px;border:1.5px solid var(--ink-soft);border-radius:10px;background:transparent;color:var(--ink-soft);cursor:pointer}
@@ -53,6 +56,15 @@ main{max-width:1040px;margin:0 auto;padding:0 16px 40px;display:grid;grid-templa
 select.lim{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1.5px solid var(--ink-soft);border-radius:4px}
 .x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:var(--box);color:var(--danger);font-size:16px;line-height:1;cursor:pointer}
 .msg{color:var(--danger);font-size:15px;min-height:1.2em}
+.pcs{margin-top:8px}
+.pc{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--ink-soft)}
+.pc input.lb{flex:1 1 90px;min-width:80px;font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--ink-soft)}
+.pc img{width:40px;height:54px;aspect-ratio:auto;object-fit:cover;border:2px solid var(--line);border-radius:3px}
+.pc .del{font:inherit;font-size:16px;line-height:1;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink-soft);background:transparent;color:var(--danger);cursor:pointer}
+.picker{border:2px dashed var(--ink-soft);border-radius:4px;padding:6px;margin:6px 0;background:var(--box)}
+.picker .pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin:6px 0}
+.picker .th{padding:0;border:2px solid var(--line);border-radius:3px;background:none;cursor:pointer;overflow:hidden;font:inherit;font-size:12px;color:var(--ink)}
+.picker .th img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:0}
 .wk{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--ink-soft);flex-wrap:wrap}
 .wk .lb{width:104px;flex:none;font-size:15px}
 .wk.now .lb{font-weight:700}
@@ -72,9 +84,9 @@ select.lim{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);
  .date .hi{margin-top:0}
  .frame{min-height:0}
  #sec-plan{order:-2}
- #sec-mine{order:-1}
- #sec-wash{order:0}
- #sec-wish{order:1}
+ #sec-look{order:-1}
+ #sec-mine{order:0}
+ #sec-wash{order:1}
  .washgrid{grid-template-columns:1fr}
 }
 </style>
@@ -85,12 +97,13 @@ select.lim{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);
  <g class="peg"><rect x="140" y="26" width="14" height="30" rx="2"/><rect x="380" y="30" width="14" height="30" rx="2"/><rect x="620" y="30" width="14" height="30" rx="2"/><rect x="860" y="22" width="14" height="30" rx="2"/></g>
 </svg>
 <main>
- <section class="frame" id="sec-wish" aria-labelledby="h-wish">
-  <h2 id="h-wish">लेने वाले कपड़े</h2>
-  <p class="note">जिस तरह के कपड़े लेने हैं उनकी फोटो डालें। मिल जाए तो “मिल गया” दबाएँ, वह मेरे कपड़े में चला जाएगा।</p>
-  <button class="add" id="addwish" type="button">लेने वाले कपड़े की फोटो जोड़ें</button>
-  <input id="filewish" type="file" accept="image/*" multiple hidden>
-  <div class="grid" id="wish"></div>
+ <section class="frame" id="sec-look" aria-labelledby="h-look">
+  <h2 id="h-look">मॉडल का लुक</h2>
+  <p class="note">मॉडल की फोटो डालें। उसने जो कपड़े पहने हैं वे जोड़ें, और हर कपड़े के लिए “मेरा कपड़ा चुनो” दबाकर अपना विकल्प चुनें। जो आपके पास नहीं है वह “मेरे पास नहीं” दिखेगा।</p>
+  <button class="add" id="addlook" type="button">मॉडल की फोटो जोड़ें</button>
+  <input id="filelook" type="file" accept="image/*" multiple hidden>
+  <div class="msg" id="msg2" role="status"></div>
+  <div class="looks" id="looks"></div>
  </section>
 
  <div class="date">
@@ -110,7 +123,7 @@ select.lim{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);
 
  <section class="frame wide" id="sec-plan" aria-labelledby="h-plan">
   <h2 id="h-plan">आज पहनने के कपड़े</h2>
-  <p class="note" id="mode"></p>
+  <div class="row" style="margin:0 0 10px"><p class="note" id="mode" style="margin:0"></p><button class="sm" id="unlook" type="button" hidden>लुक हटाओ, अपने-आप चुनो</button></div>
   <div id="today"></div>
   <h3 style="margin-top:18px">अगले 7 दिन</h3>
   <p class="note">आने वाले दिनों में कपड़े इस समय की सफ़ाई के हिसाब से दिख रहे हैं, धुलाई के बाद बदल सकते हैं।</p>
@@ -139,19 +152,29 @@ var EN=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 var HI=["रविवार","सोमवार","मंगलवार","बुधवार","गुरुवार","शुक्रवार","शनिवार"];
 var SH=["रवि","सोम","मंगल","बुध","गुरु","शुक्र","शनि"];
 var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-var state={items:[],wish:[],today:null};
+var state={items:[],looks:[],today:null};
+var picker=null;
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function norm(i){return {id:i.id||uid(),src:i.src,name:i.name||"",days:i.days||[],wears:i.wears||0,limit:i.limit||2,dirty:!!i.dirty,lastWorn:i.lastWorn||""};}
+function normLook(l){return {id:l.id||uid(),src:l.src,name:l.name||"",pieces:l.pieces||[]};}
 try{
  var r=localStorage.getItem(KEY);
- if(r){var s=JSON.parse(r)||{};state.items=(s.items||[]).map(norm);state.wish=s.wish||[];state.today=s.today||null;}
- else{var o=localStorage.getItem(OLD);if(o)state.items=(JSON.parse(o)||[]).map(norm);}
+ if(r){
+  var s=JSON.parse(r)||{};
+  state.items=(s.items||[]).map(norm);
+  state.looks=(s.looks||s.wish||[]).map(normLook);
+  state.today=s.today||null;
+ }else{
+  var o=localStorage.getItem(OLD);
+  if(o)state.items=(JSON.parse(o)||[]).map(norm);
+ }
 }catch(e){}
 var $=function(id){return document.getElementById(id)};
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function itemOf(id){return state.items.filter(function(i){return i.id===id;})[0];}
 function save(){
  try{localStorage.setItem(KEY,JSON.stringify(state));$("msg").textContent="";return true;}
- catch(e){$("msg").textContent="जगह भर गई, कुछ पुरानी फोटो हटाइए।";return false;}
+ catch(e){$("msg").textContent="जगह भर गई, कुछ पुरानी फोटो हटाइए।";$("msg2").textContent="जगह भर गई, कुछ पुरानी फोटो हटाइए।";return false;}
 }
 function dkey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
 function dayNum(d){return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);}
@@ -168,14 +191,20 @@ function pick(d){
  var src=pool.length?pool:clean;
  return {list:[src[dayNum(d)%src.length]],mode:"rot"};
 }
+function idsToItems(ids){return (ids||[]).map(itemOf).filter(Boolean);}
 function pickToday(){
- var now=new Date(),k=dkey(now),r=pick(now);
+ var now=new Date(),k=dkey(now),t=state.today;
+ if(t&&t.key===k&&t.mode==="look"){
+  var ll=idsToItems(t.ids);
+  if(ll.length)return {list:ll,mode:"look",name:t.name};
+ }
+ var r=pick(now);
  if(r.mode!=="rot")return r;
- if(state.today&&state.today.key===k){
-  var l=state.today.ids.map(function(id){return state.items.filter(function(i){return i.id===id;})[0];}).filter(Boolean);
+ if(t&&t.key===k&&(t.mode||"rot")==="rot"){
+  var l=idsToItems(t.ids);
   if(l.length)return {list:l,mode:"rot"};
  }
- state.today={key:k,ids:r.list.map(function(i){return i.id;})};
+ state.today={key:k,ids:r.list.map(function(i){return i.id;}),mode:"rot"};
  save();
  return r;
 }
@@ -194,6 +223,7 @@ function toWash(it){it.dirty=true;save();renderAll();}
 
 function renderPlan(){
  var now=new Date(),k=dkey(now),r=pickToday(),box=$("today");box.textContent="";
+ $("unlook").hidden=r.mode!=="look";
  if(!r.list.length){
   box.appendChild(el("div","empty",
    r.mode==="alldirty"?"सारे कपड़े धोने वाले हैं। नीचे धुलाई में जाकर “धो दिया” दबाएँ।":"अभी कोई कपड़ा नहीं है। “मेरे कपड़े” में फोटो जोड़ें।"));
@@ -211,7 +241,8 @@ function renderPlan(){
    m.appendChild(b);p.appendChild(m);g.appendChild(p);
   });
   box.appendChild(g);
-  $("mode").textContent=r.mode==="day"?HI[now.getDay()]+" के लिए चुने हुए कपड़े":"आज की तारीख़ से अपने-आप चुना गया (सिर्फ़ साफ़ कपड़ों में से)";
+  $("mode").textContent=r.mode==="look"?"मॉडल के लुक"+(r.name?" “"+r.name+"”":"")+" के हिसाब से आज के कपड़े":
+   r.mode==="day"?HI[now.getDay()]+" के लिए चुने हुए कपड़े":"आज की तारीख़ से अपने-आप चुना गया (सिर्फ़ साफ़ कपड़ों में से)";
  }
  var wk=$("week");wk.textContent="";
  for(var i=0;i<7;i++){
@@ -224,6 +255,8 @@ function renderPlan(){
   wk.appendChild(row);
  }
 }
+$("unlook").onclick=function(){state.today=null;save();renderAll();};
+
 function renderWardrobe(){
  var w=$("wardrobe");w.textContent="";
  if(!state.items.length){w.appendChild(el("div","empty","यहाँ आपके कपड़े दिखेंगे।"));return;}
@@ -254,27 +287,93 @@ function renderWardrobe(){
   c.appendChild(ch);w.appendChild(c);
  });
 }
-function renderWish(){
- var w=$("wish");w.textContent="";
- if(!state.wish.length){w.appendChild(el("div","empty","जो कपड़े लेने हैं उनकी फोटो यहाँ दिखेगी।"));return;}
- state.wish.forEach(function(it){
-  var c=el("div","card");var im=el("img");im.src=it.src;im.alt=it.name||"लेने वाला कपड़ा";c.appendChild(im);
-  var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","हटाएँ");
-  x.onclick=function(){state.wish=state.wish.filter(function(o){return o.id!==it.id;});save();renderAll();};
+
+function renderLooks(){
+ var w=$("looks");w.textContent="";
+ if(!state.looks.length){w.appendChild(el("div","empty","मॉडल की फोटो यहाँ दिखेगी।"));return;}
+ state.looks.forEach(function(lk){
+  var c=el("div","card look");
+  var im=el("img","mdl");im.src=lk.src;im.alt=lk.name||"मॉडल का लुक";c.appendChild(im);
+  var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","लुक हटाएँ");
+  x.onclick=function(){state.looks=state.looks.filter(function(o){return o.id!==lk.id;});if(picker&&picker.lookId===lk.id)picker=null;save();renderAll();};
   c.appendChild(x);
-  var nm=el("input","nm");nm.placeholder="नाम (जैसे सफ़ेद कुर्ता)";nm.value=it.name||"";nm.setAttribute("aria-label","कपड़े का नाम");
-  nm.onchange=function(){it.name=nm.value.trim();save();};
+  var nm=el("input","nm");nm.placeholder="लुक का नाम (जैसे ऑफिस लुक)";nm.value=lk.name||"";nm.setAttribute("aria-label","लुक का नाम");
+  nm.onchange=function(){lk.name=nm.value.trim();save();renderPlan();};
   c.appendChild(nm);
-  var row=el("div","row");
-  var b=el("button","sm go","मिल गया");b.type="button";
-  b.onclick=function(){
-   state.wish=state.wish.filter(function(o){return o.id!==it.id;});
-   state.items.push(norm({id:it.id,src:it.src,name:it.name}));
+
+  var have=lk.pieces.filter(function(p){return itemOf(p.itemId);}).length;
+  var total=lk.pieces.length;
+  var sum=el("div","row");
+  if(!total){sum.appendChild(el("span",null,"मॉडल ने जो कपड़े पहने हैं वे नीचे जोड़ें।"));}
+  else{
+   sum.appendChild(el("span","tag "+(have===total?"clean":"dirty"),total+" में से "+have+" मेरे पास"));
+   var miss=lk.pieces.filter(function(p){return !itemOf(p.itemId);}).map(function(p){return p.label||"बिना नाम";});
+   if(miss.length)sum.appendChild(el("span",null,"नहीं है: "+miss.join(", ")));
+  }
+  c.appendChild(sum);
+
+  var pcs=el("div","pcs");
+  lk.pieces.forEach(function(p){
+   var row=el("div","pc");
+   var lb=el("input","lb");lb.placeholder="कपड़ा (जैसे शर्ट)";lb.value=p.label||"";lb.setAttribute("aria-label","मॉडल के कपड़े का नाम");
+   lb.onchange=function(){p.label=lb.value.trim();save();renderLooks();};
+   row.appendChild(lb);
+   var mine=itemOf(p.itemId);
+   if(mine){
+    var t=el("img");t.src=mine.src;t.alt=mine.name||"मेरा कपड़ा";row.appendChild(t);
+    row.appendChild(el("span","tag clean","मेरे पास"+(mine.name?": "+mine.name:"")));
+    var ch=el("button","sm","बदलो");ch.type="button";ch.onclick=function(){picker={lookId:lk.id,pieceId:p.id};renderLooks();};
+    row.appendChild(ch);
+    var cl=el("button","sm","हटाओ");cl.type="button";cl.onclick=function(){p.itemId="";save();renderAll();};
+    row.appendChild(cl);
+   }else{
+    row.appendChild(el("span","tag dirty","मेरे पास नहीं"));
+    var pk=el("button","sm go","मेरा कपड़ा चुनो");pk.type="button";pk.onclick=function(){picker={lookId:lk.id,pieceId:p.id};renderLooks();};
+    row.appendChild(pk);
+   }
+   var dl=el("button","del","×");dl.type="button";dl.setAttribute("aria-label","यह कपड़ा हटाएँ");
+   dl.onclick=function(){lk.pieces=lk.pieces.filter(function(o){return o.id!==p.id;});if(picker&&picker.pieceId===p.id)picker=null;save();renderAll();};
+   row.appendChild(dl);
+   pcs.appendChild(row);
+   if(picker&&picker.lookId===lk.id&&picker.pieceId===p.id){
+    var pb=el("div","picker");
+    pb.appendChild(el("div",null,"अपने कपड़ों में से चुनें:"));
+    var pg=el("div","pg");
+    if(!state.items.length)pg.appendChild(el("div","empty","पहले “मेरे कपड़े” में फोटो जोड़ें।"));
+    state.items.forEach(function(it){
+     var b=el("button","th");b.type="button";b.setAttribute("aria-label",it.name||"कपड़ा चुनें");
+     var ti=el("img");ti.src=it.src;ti.alt=it.name||"कपड़ा";b.appendChild(ti);
+     if(it.name)b.appendChild(el("div",null,it.name));
+     b.onclick=function(){p.itemId=it.id;picker=null;save();renderAll();};
+     pg.appendChild(b);
+    });
+    pb.appendChild(pg);
+    var cn=el("button","sm","रद्द करो");cn.type="button";cn.onclick=function(){picker=null;renderLooks();};
+    pb.appendChild(cn);
+    pcs.appendChild(pb);
+   }
+  });
+  c.appendChild(pcs);
+
+  var act=el("div","row");
+  var ap=el("button","sm","+ कपड़ा जोड़ें");ap.type="button";
+  ap.onclick=function(){var np={id:uid(),label:"",itemId:""};lk.pieces.push(np);save();renderLooks();};
+  act.appendChild(ap);
+  var td=el("button","sm go","आज यह लुक पहनूँ");td.type="button";
+  td.onclick=function(){
+   var ids=lk.pieces.map(function(p){return p.itemId;}).filter(function(id){return itemOf(id);});
+   if(!ids.length){$("msg2").textContent="पहले इस लुक के लिए अपने कपड़े चुनें।";return;}
+   $("msg2").textContent="";
+   state.today={key:dkey(new Date()),ids:ids,mode:"look",name:lk.name};
    save();renderAll();
+   $("sec-plan").scrollIntoView({behavior:"smooth",block:"start"});
   };
-  row.appendChild(b);c.appendChild(row);w.appendChild(c);
+  act.appendChild(td);
+  c.appendChild(act);
+  w.appendChild(c);
  });
 }
+
 function miniCard(it,btnText,onclick,primary){
  var c=el("div","card");var im=el("img");im.src=it.src;im.alt=it.name||"कपड़ा";c.appendChild(im);
  c.appendChild(el("div",null,it.name||"बिना नाम"));
@@ -306,7 +405,7 @@ function renderDate(){
  $("dh").textContent=HI[n.getDay()];
  $("tm").textContent=n.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true});
 }
-function renderAll(){renderPlan();renderWardrobe();renderWish();renderWash();}
+function renderAll(){renderPlan();renderWardrobe();renderLooks();renderWash();}
 
 function shrink(file){
  return new Promise(function(res,rej){
@@ -330,7 +429,7 @@ function handle(e,target){
  Promise.all(files.map(shrink)).then(function(arr){
   var list=state[target];
   arr.forEach(function(src){
-   list.push(target==="items"?norm({src:src}):{id:uid(),src:src,name:""});
+   list.push(target==="items"?norm({src:src}):normLook({src:src}));
   });
   if(!save())list.splice(list.length-arr.length,arr.length);
   renderAll();
@@ -338,9 +437,9 @@ function handle(e,target){
  e.target.value="";
 }
 $("addbtn").onclick=function(){$("file").click();};
-$("addwish").onclick=function(){$("filewish").click();};
+$("addlook").onclick=function(){$("filelook").click();};
 $("file").onchange=function(e){handle(e,"items");};
-$("filewish").onchange=function(e){handle(e,"wish");};
+$("filelook").onchange=function(e){handle(e,"looks");};
 
 var lastKey="";
 function tick(){
