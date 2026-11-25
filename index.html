@@ -26,18 +26,18 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 .slot .pick:focus-visible{outline:3px solid var(--ink);outline-offset:-5px}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
 .slot .x{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--paper);color:var(--danger);font-size:18px;line-height:1;cursor:pointer;z-index:2}
-.x:focus-visible,.opt:focus-visible,.nc:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+.slot .chg{position:absolute;left:6px;top:6px;z-index:2;font:inherit;font-size:14px;line-height:1.2;padding:3px 9px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer}
+.x:focus-visible,.opt:focus-visible,.nc:focus-within,.chg:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .needs{padding:6px 8px 8px}
 .nt{font-size:15px;font-weight:700;margin-bottom:4px}
 .nrow{display:flex;flex-wrap:wrap;gap:5px}
 .nc{display:inline-flex;align-items:center;gap:4px;font-size:15px;line-height:1.2;padding:2px 8px;border:1.5px solid var(--ink-soft);border-radius:12px;cursor:pointer}
 .nc input{margin:0;width:16px;height:16px;accent-color:var(--danger)}
-.slot .chg{position:absolute;left:6px;top:6px;z-index:2;font:inherit;font-size:14px;line-height:1.2;padding:3px 9px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer}
-.chg:focus-visible,.lbbar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .lb{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:20;display:flex;flex-direction:column}
 .lb[hidden]{display:none}
 .lbbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;color:#fff;font-size:15px}
 .lbbar button{font:inherit;font-size:17px;font-weight:700;color:#fff;background:transparent;border:2px solid #fff;border-radius:6px;padding:4px 14px;cursor:pointer}
+.lbbar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .lbs{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
 .lbs.z{display:block}
 .lbs img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
@@ -77,46 +77,93 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 var KEY="kapde_din_wise_v1";
 var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 var ITEMS=["शर्ट","पैंट","जूते"];
-var store={},curKey=null,trigger=null;
+var store={},photos={},db=null,curKey=null,trigger=null,lbTrigger=null;
 try{store=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){store={};}
 var $=function(id){return document.getElementById(id)};
 function say(t){$("msg").textContent=t;}
 function save(){
- try{localStorage.setItem(KEY,JSON.stringify(store));say("");return true;}
- catch(e){say("जगह भर गई, कुछ फोटो हटाइए।");return false;}
+ try{localStorage.setItem(KEY,JSON.stringify(store));return true;}
+ catch(e){say("जगह भर गई, कुछ चीज़ें हटाइए।");return false;}
 }
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+
+/* ---- फोटो भंडार (IndexedDB): पूरी क्वालिटी में फोटो रखने के लिए ---- */
+function openDB(){
+ return new Promise(function(res,rej){
+  if(!window.indexedDB){rej(new Error("noidb"));return;}
+  var rq=indexedDB.open("kapde_photos",1);
+  rq.onupgradeneeded=function(){rq.result.createObjectStore("p");};
+  rq.onsuccess=function(){res(rq.result);};
+  rq.onerror=function(){rej(rq.error);};
+ });
+}
+function idbAll(){
+ return new Promise(function(res,rej){
+  var out={};
+  var c=db.transaction("p","readonly").objectStore("p").openCursor();
+  c.onsuccess=function(){var cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue();}else res(out);};
+  c.onerror=function(){rej(c.error);};
+ });
+}
+function idbPut(k,blob){
+ return new Promise(function(res,rej){
+  var tx=db.transaction("p","readwrite");tx.objectStore("p").put(blob,k);
+  tx.oncomplete=function(){res();};
+  tx.onerror=tx.onabort=function(){rej(tx.error);};
+ });
+}
+function idbDel(k){
+ return new Promise(function(res,rej){
+  var tx=db.transaction("p","readwrite");tx.objectStore("p").delete(k);
+  tx.oncomplete=function(){res();};
+  tx.onerror=tx.onabort=function(){rej(tx.error);};
+ });
+}
+function setPhoto(key,blob){
+ var p=db?idbPut(key,blob):Promise.resolve();
+ return p.then(function(){
+  if(photos[key])URL.revokeObjectURL(photos[key].url);
+  photos[key]={blob:blob,url:URL.createObjectURL(blob)};
+ });
+}
+function removePhoto(key){
+ var p=db?idbDel(key):Promise.resolve();
+ return p.then(function(){
+  if(photos[key])URL.revokeObjectURL(photos[key].url);
+  delete photos[key];
+ });
+}
+function dataToBlob(d){
+ var p=d.split(","),m=/data:([^;]+)/.exec(p[0]),bin=atob(p[1]),a=new Uint8Array(bin.length);
+ for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+ return new Blob([a],{type:m?m[1]:"image/jpeg"});
+}
+
+/* ---- फोटो को बड़ा रखकर (1600px, क्वालिटी 90%) सेव करना ---- */
 function shrink(file){
  return new Promise(function(res,rej){
-  var fr=new FileReader();fr.onerror=rej;
-  fr.onload=function(){
-   var im=new Image();im.onerror=rej;
-   im.onload=function(){
-    var M=480,s=Math.min(1,M/Math.max(im.width,im.height));
-    var c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
-    c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-    res(c.toDataURL("image/jpeg",0.72));
-   };
-   im.src=fr.result;
+  var url=URL.createObjectURL(file),im=new Image();
+  im.onerror=function(){URL.revokeObjectURL(url);rej(new Error("img"));};
+  im.onload=function(){
+   var w=im.naturalWidth,h=im.naturalHeight,s=Math.min(1,1600/Math.max(w,h));
+   var c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);
+   var cx=c.getContext("2d");cx.imageSmoothingQuality="high";cx.drawImage(im,0,0,c.width,c.height);
+   URL.revokeObjectURL(url);
+   c.toBlob(function(b){if(b)res(b);else rej(new Error("blob"));},"image/jpeg",0.9);
   };
-  fr.readAsDataURL(file);
+  im.src=url;
  });
 }
 
-function openSheet(key,btn){
- curKey=key;trigger=btn;
- $("sheet").hidden=false;
- $("cam").focus();
-}
-function closeSheet(){
- $("sheet").hidden=true;
- if(trigger&&document.body.contains(trigger))trigger.focus();
-}
+/* ---- कैमरा/गैलरी मेन्यू ---- */
+function openSheet(key,btn){curKey=key;trigger=btn;$("sheet").hidden=false;$("cam").focus();}
+function closeSheet(){$("sheet").hidden=true;if(trigger&&document.body.contains(trigger))trigger.focus();}
 $("cam").onclick=function(){$("sheet").hidden=true;$("camIn").click();};
 $("gal").onclick=function(){$("sheet").hidden=true;$("galIn").click();};
 $("cancel").onclick=closeSheet;
 $("sheet").onclick=function(e){if(e.target===$("sheet"))closeSheet();};
-var lbTrigger=null;
+
+/* ---- बड़ी फोटो देखना (ज़ूम) ---- */
 function openLb(src,btn){
  lbTrigger=btn;
  $("lbimg").src=src;
@@ -125,16 +172,9 @@ function openLb(src,btn){
  $("lbs").scrollTop=0;$("lbs").scrollLeft=0;
  $("lbx").focus();
 }
-function closeLb(){
- $("lb").hidden=true;
- if(lbTrigger&&document.body.contains(lbTrigger))lbTrigger.focus();
-}
+function closeLb(){$("lb").hidden=true;if(lbTrigger&&document.body.contains(lbTrigger))lbTrigger.focus();}
 $("lbx").onclick=closeLb;
-$("lbimg").onclick=function(){
- var s=$("lbs");
- s.classList.toggle("z");
- s.scrollTop=0;s.scrollLeft=0;
-};
+$("lbimg").onclick=function(){var s=$("lbs");s.classList.toggle("z");s.scrollTop=0;s.scrollLeft=0;};
 $("lbs").onclick=function(e){if(e.target===$("lbs"))closeLb();};
 document.addEventListener("keydown",function(e){
  if(e.key!=="Escape")return;
@@ -147,11 +187,9 @@ function onFile(e){
  var key=curKey;
  e.target.value="";
  if(!f||!key)return;
- shrink(f).then(function(src){
-  var old=store[key];store[key]=src;
-  if(!save()){if(old)store[key]=old;else delete store[key];}
-  render();
- }).catch(function(){say("फोटो पढ़ नहीं पाए, दूसरी फोटो आज़माइए।");});
+ say("");
+ shrink(f).then(function(b){return setPhoto(key,b);}).then(render)
+ .catch(function(){say("फोटो सेव नहीं हो पाई, दूसरी फोटो आज़माइए।");});
 }
 $("camIn").onchange=onFile;
 $("galIn").onchange=onFile;
@@ -185,21 +223,21 @@ function slot(day,which,label,withNeeds){
  var box=el("div","slot"+(withNeeds?" split":""));
  var area=withNeeds?el("div","photo"):box;
  var b=el("button","pick");b.type="button";
- b.setAttribute("aria-label",day+" – "+label);
- b.onclick=function(){openSheet(key,b);};
- if(store[key]){
-  var im=el("img");im.src=store[key];im.alt=day+" का कपड़ा";area.appendChild(im);
+ if(photos[key]){
+  var im=el("img");im.src=photos[key].url;im.alt=day+" का कपड़ा";area.appendChild(im);
   b.setAttribute("aria-label",day+" – फोटो बड़ी करके देखें");
-  b.onclick=function(){openLb(store[key],b);};
+  b.onclick=function(){openLb(photos[key].url,b);};
   area.appendChild(b);
   var ch=el("button","chg","बदलो");ch.type="button";
   ch.setAttribute("aria-label",day+" – फोटो बदलें");
   ch.onclick=function(e){e.stopPropagation();openSheet(key,ch);};
   area.appendChild(ch);
   var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","फोटो हटाएँ");
-  x.onclick=function(e){e.stopPropagation();delete store[key];save();render();};
+  x.onclick=function(e){e.stopPropagation();removePhoto(key).then(render).catch(function(){say("फोटो हट नहीं पाई।");});};
   area.appendChild(x);
  }else{
+  b.setAttribute("aria-label",day+" – "+label);
+  b.onclick=function(){openSheet(key,b);};
   b.textContent="फोटो जोड़ें";
   area.appendChild(b);
  }
@@ -220,7 +258,28 @@ function render(){
   sec.appendChild(p);wrap.appendChild(sec);
  }
 }
-render();
+
+/* ---- शुरू: फोटो लोड करना और पुरानी (कम क्वालिटी वाली) फोटो को नए भंडार में लाना ---- */
+function loadAll(){
+ return openDB().then(function(d){db=d;return idbAll();}).then(function(all){
+  Object.keys(all).forEach(function(k){photos[k]={blob:all[k],url:URL.createObjectURL(all[k])};});
+ }).catch(function(){
+  db=null;
+  say("इस ब्राउज़र में फोटो हमेशा के लिए सेव नहीं हो पाएँगी।");
+ });
+}
+function migrate(){
+ var keys=Object.keys(store).filter(function(k){return typeof store[k]==="string"&&store[k].indexOf("data:")===0;});
+ var chain=Promise.resolve();
+ keys.forEach(function(k){
+  chain=chain.then(function(){
+   if(photos[k])return;
+   return setPhoto(k,dataToBlob(store[k]));
+  }).then(function(){if(db)delete store[k];}).catch(function(){});
+ });
+ return chain.then(function(){if(keys.length)save();});
+}
+loadAll().then(migrate).then(render,render);
 })();
 </script>
 </body>
