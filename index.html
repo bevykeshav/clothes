@@ -14,9 +14,11 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:"Kalam","Noto Sans Devanagari",system-ui,sans-serif;font-size:18px;line-height:1.3}
 main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
-.day{margin-bottom:22px}
+.day{margin-bottom:24px}
 .day h2{margin:0 0 8px;text-align:center;font-size:22px;font-weight:700}
 .day h2 small{font-size:14px;font-weight:400;color:var(--ink-soft);margin-left:6px}
+.combo{margin-bottom:14px}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:16px;color:var(--ink-soft)}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .slot{position:relative;aspect-ratio:3/5;border:2.5px solid var(--line);border-radius:5px 3px 6px 3px/3px 6px 3px 5px;overflow:hidden}
 .slot.split{display:flex;flex-direction:column}
@@ -27,12 +29,22 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
 .slot .x{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--paper);color:var(--danger);font-size:18px;line-height:1;cursor:pointer;z-index:2}
 .slot .chg{position:absolute;left:6px;top:6px;z-index:2;font:inherit;font-size:14px;line-height:1.2;padding:3px 9px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer}
-.x:focus-visible,.opt:focus-visible,.nc:focus-within,.chg:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.x:focus-visible,.opt:focus-visible,.nc:focus-within,.chg:focus-visible,.sm:focus-visible,.addc:focus-visible,summary:focus-visible,.srow:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .needs{padding:6px 8px 8px}
 .nt{font-size:15px;font-weight:700;margin-bottom:4px}
 .nrow{display:flex;flex-wrap:wrap;gap:5px}
 .nc{display:inline-flex;align-items:center;gap:4px;font-size:15px;line-height:1.2;padding:2px 8px;border:1.5px solid var(--ink-soft);border-radius:12px;cursor:pointer}
 .nc input{margin:0;width:16px;height:16px;accent-color:var(--danger)}
+.sm{font:inherit;font-size:14px;line-height:1.2;padding:3px 10px;border:2px solid var(--ink-soft);border-radius:12px;background:transparent;color:var(--danger);cursor:pointer}
+.addc{display:block;width:100%;font:inherit;font-size:17px;font-weight:700;padding:9px;border:2.5px dashed var(--line);border-radius:6px;background:transparent;color:var(--ink);cursor:pointer}
+.sum{border:2.5px solid var(--line);border-radius:5px 3px 6px 3px/3px 6px 3px 5px;padding:8px 12px;margin-bottom:22px}
+.sum summary{cursor:pointer;font-weight:700;font-size:19px}
+.sum .tot{margin:8px 0 6px;font-size:16px;color:var(--danger)}
+.srow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;font-size:16px;color:var(--ink);background:transparent;border:0;border-top:1px dashed var(--ink-soft);padding:6px 0;cursor:pointer}
+.srow img{width:36px;height:48px;object-fit:cover;border:2px solid var(--line);border-radius:3px;flex:none}
+.srow .ph{width:36px;height:48px;border:2px dashed var(--ink-soft);border-radius:3px;flex:none}
+.srow b{color:var(--danger)}
+.none{color:var(--ink-soft);font-size:16px;margin:8px 0 2px}
 .lb{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:20;display:flex;flex-direction:column}
 .lb[hidden]{display:none}
 .lbbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;color:#fff;font-size:15px}
@@ -54,6 +66,7 @@ main{max-width:520px;margin:0 auto;padding:14px 16px 40px}
 <body>
 <main>
  <div class="msg" id="msg" role="status"></div>
+ <details class="sum" id="sumwrap" open><summary id="sumT">क्या खरीदना है</summary><div id="sum"></div></details>
  <div id="days"></div>
 </main>
 
@@ -87,7 +100,12 @@ function save(){
 }
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 
-/* ---- फोटो भंडार (IndexedDB): पूरी क्वालिटी में फोटो रखने के लिए ---- */
+/* कॉम्बिनेशन की चाबियाँ: पहला कॉम्बिनेशन पुरानी चाबियाँ ही इस्तेमाल करता है */
+function ck(day,i){return i===0?day:day+"#"+i;}
+function count(day){return Math.max(1,parseInt(store[day+":count"],10)||1);}
+function needsOf(day,i){var v=store[ck(day,i)+":nahi"];return Array.isArray(v)?v:[];}
+
+/* ---- फोटो भंडार (IndexedDB) ---- */
 function openDB(){
  return new Promise(function(res,rej){
   if(!window.indexedDB){rej(new Error("noidb"));return;}
@@ -139,7 +157,7 @@ function dataToBlob(d){
  return new Blob([a],{type:m?m[1]:"image/jpeg"});
 }
 
-/* ---- फोटो को बड़ा रखकर (1600px, क्वालिटी 90%) सेव करना ---- */
+/* ---- फोटो बड़ी रखकर (1600px, क्वालिटी 90%) सेव करना ---- */
 function shrink(file){
  return new Promise(function(res,rej){
   var url=URL.createObjectURL(file),im=new Image();
@@ -194,9 +212,10 @@ function onFile(e){
 $("camIn").onchange=onFile;
 $("galIn").onchange=onFile;
 
-function needs(day){
- var key=day+":nahi";
- var list=Array.isArray(store[key])?store[key]:[];
+/* ---- "मेरे पास नहीं है" चुनाव ---- */
+function needs(day,i){
+ var key=ck(day,i)+":nahi";
+ var list=needsOf(day,i);
  var wrap=el("div","needs");
  wrap.appendChild(el("div","nt","मेरे पास नहीं है:"));
  var row=el("div","nrow");
@@ -204,12 +223,12 @@ function needs(day){
   var lb=el("label","nc");
   var cb=document.createElement("input");cb.type="checkbox";cb.checked=list.indexOf(n)>-1;
   cb.onchange=function(){
-   var cur=Array.isArray(store[key])?store[key].slice():[];
-   var i=cur.indexOf(n);
-   if(cb.checked&&i<0)cur.push(n);
-   if(!cb.checked&&i>-1)cur.splice(i,1);
+   var cur=needsOf(day,i).slice();
+   var k=cur.indexOf(n);
+   if(cb.checked&&k<0)cur.push(n);
+   if(!cb.checked&&k>-1)cur.splice(k,1);
    if(cur.length)store[key]=cur;else delete store[key];
-   save();
+   save();renderSummary();
   };
   lb.appendChild(cb);lb.appendChild(document.createTextNode(n));
   row.appendChild(lb);
@@ -218,48 +237,124 @@ function needs(day){
  return wrap;
 }
 
-function slot(day,which,label,withNeeds){
- var key=day+":"+which;
+function slot(day,i,which,withNeeds){
+ var key=ck(day,i)+":"+which;
+ var nm=day+(count(day)>1?" कॉम्बिनेशन "+(i+1):"");
  var box=el("div","slot"+(withNeeds?" split":""));
  var area=withNeeds?el("div","photo"):box;
  var b=el("button","pick");b.type="button";
  if(photos[key]){
-  var im=el("img");im.src=photos[key].url;im.alt=day+" का कपड़ा";area.appendChild(im);
-  b.setAttribute("aria-label",day+" – फोटो बड़ी करके देखें");
+  var im=el("img");im.src=photos[key].url;im.alt=nm+" का कपड़ा";area.appendChild(im);
+  b.setAttribute("aria-label",nm+" – फोटो बड़ी करके देखें");
   b.onclick=function(){openLb(photos[key].url,b);};
   area.appendChild(b);
   var ch=el("button","chg","बदलो");ch.type="button";
-  ch.setAttribute("aria-label",day+" – फोटो बदलें");
+  ch.setAttribute("aria-label",nm+" – फोटो बदलें");
   ch.onclick=function(e){e.stopPropagation();openSheet(key,ch);};
   area.appendChild(ch);
   var x=el("button","x","×");x.type="button";x.setAttribute("aria-label","फोटो हटाएँ");
   x.onclick=function(e){e.stopPropagation();removePhoto(key).then(render).catch(function(){say("फोटो हट नहीं पाई।");});};
   area.appendChild(x);
  }else{
-  b.setAttribute("aria-label",day+" – "+label);
+  b.setAttribute("aria-label",nm+" – फोटो जोड़ें");
   b.onclick=function(){openSheet(key,b);};
   b.textContent="फोटो जोड़ें";
   area.appendChild(b);
  }
- if(withNeeds){box.appendChild(area);box.appendChild(needs(day));}
+ if(withNeeds){box.appendChild(area);box.appendChild(needs(day,i));}
  return box;
 }
-function render(){
- var wrap=$("days");wrap.textContent="";
- var t=new Date().getDay();
- for(var i=0;i<7;i++){
-  var d=DAYS[(t+i)%7];
-  var sec=el("section","day");
-  var h=el("h2",null,d);if(i===0)h.appendChild(el("small",null,"आज"));
-  sec.appendChild(h);
-  var p=el("div","pair");
-  p.appendChild(slot(d,"a","पहले बॉक्स में फोटो जोड़ें",false));
-  p.appendChild(slot(d,"b","दूसरे बॉक्स में फोटो जोड़ें",true));
-  sec.appendChild(p);wrap.appendChild(sec);
- }
+
+/* ---- कॉम्बिनेशन जोड़ना / हटाना ---- */
+function addCombo(day){store[day+":count"]=count(day)+1;save();render();}
+function deleteCombo(day,i){
+ if(!window.confirm("यह कॉम्बिनेशन हटाएँ?"))return;
+ var n=count(day),chain=Promise.resolve();
+ for(var j=i;j<n-1;j++){(function(j){
+  ["a","b"].forEach(function(w){
+   chain=chain.then(function(){
+    var from=ck(day,j+1)+":"+w,to=ck(day,j)+":"+w;
+    if(photos[from])return setPhoto(to,photos[from].blob);
+    return removePhoto(to);
+   });
+  });
+  chain=chain.then(function(){
+   var f=ck(day,j+1)+":nahi",t=ck(day,j)+":nahi";
+   if(store[f])store[t]=store[f].slice();else delete store[t];
+  });
+ })(j);}
+ chain.then(function(){
+  var last=ck(day,n-1);
+  return removePhoto(last+":a").then(function(){return removePhoto(last+":b");}).then(function(){
+   delete store[last+":nahi"];
+   if(n-1>1)store[day+":count"]=n-1;else delete store[day+":count"];
+   save();
+  });
+ }).then(render).catch(function(){say("कॉम्बिनेशन हट नहीं पाया।");});
 }
 
-/* ---- शुरू: फोटो लोड करना और पुरानी (कम क्वालिटी वाली) फोटो को नए भंडार में लाना ---- */
+/* ---- क्या खरीदना है ---- */
+function orderedDays(){var t=new Date().getDay(),o=[];for(var i=0;i<7;i++)o.push(DAYS[(t+i)%7]);return o;}
+function renderSummary(){
+ var box=$("sum");box.textContent="";
+ var tot={},rows=[],n=0;
+ ITEMS.forEach(function(it){tot[it]=0;});
+ orderedDays().forEach(function(d){
+  for(var i=0;i<count(d);i++){
+   var l=needsOf(d,i);
+   if(!l.length)continue;
+   n++;
+   l.forEach(function(it){if(tot[it]!=null)tot[it]++;});
+   rows.push({d:d,i:i,l:l});
+  }
+ });
+ $("sumT").textContent="क्या खरीदना है"+(n?" ("+n+" कॉम्बिनेशन में)":"");
+ if(!n){box.appendChild(el("div","none","अभी कुछ खरीदना बाकी नहीं है। जो चीज़ आपके पास नहीं है उसे नीचे बॉक्स में टिक करें।"));return;}
+ var t=ITEMS.filter(function(it){return tot[it];}).map(function(it){return it+" "+tot[it];}).join(", ");
+ box.appendChild(el("div","tot","कुल खरीदना: "+t));
+ rows.forEach(function(r){
+  var b=el("button","srow");b.type="button";
+  var ph=photos[ck(r.d,r.i)+":a"];
+  if(ph){var im=el("img");im.src=ph.url;im.alt="";b.appendChild(im);}else b.appendChild(el("span","ph"));
+  var s=el("span");
+  s.appendChild(document.createTextNode(r.d+(count(r.d)>1?" · कॉम्बिनेशन "+(r.i+1):"")+": "));
+  s.appendChild(el("b",null,r.l.join(", ")));
+  b.appendChild(s);
+  b.onclick=function(){var t=$("c-"+r.d+"-"+r.i);if(t)t.scrollIntoView({behavior:"smooth",block:"start"});};
+  box.appendChild(b);
+ });
+}
+
+function render(){
+ var wrap=$("days");wrap.textContent="";
+ orderedDays().forEach(function(d,idx){
+  var sec=el("section","day");
+  var h=el("h2",null,d);if(idx===0)h.appendChild(el("small",null,"आज"));
+  sec.appendChild(h);
+  var n=count(d);
+  for(var i=0;i<n;i++){(function(i){
+   var c=el("div","combo");c.id="c-"+d+"-"+i;
+   if(n>1){
+    var hd=el("div","chead");hd.appendChild(el("span",null,"कॉम्बिनेशन "+(i+1)));
+    var dl=el("button","sm","हटाओ");dl.type="button";
+    dl.setAttribute("aria-label",d+" कॉम्बिनेशन "+(i+1)+" हटाएँ");
+    dl.onclick=function(){deleteCombo(d,i);};
+    hd.appendChild(dl);c.appendChild(hd);
+   }
+   var p=el("div","pair");
+   p.appendChild(slot(d,i,"a",false));
+   p.appendChild(slot(d,i,"b",true));
+   c.appendChild(p);sec.appendChild(c);
+  })(i);}
+  var add=el("button","addc","+ और कॉम्बिनेशन जोड़ें");add.type="button";
+  add.onclick=function(){addCombo(d);};
+  sec.appendChild(add);
+  wrap.appendChild(sec);
+ });
+ renderSummary();
+}
+
+/* ---- शुरू: फोटो लोड करना और पुरानी फोटो को नए भंडार में लाना ---- */
 function loadAll(){
  return openDB().then(function(d){db=d;return idbAll();}).then(function(all){
   Object.keys(all).forEach(function(k){photos[k]={blob:all[k],url:URL.createObjectURL(all[k])};});
