@@ -66,6 +66,8 @@ main{max-width:1000px;margin:0 auto;padding:0 16px 40px;display:grid;grid-templa
   <h2 id="h-today">आज पहनने के कपड़े</h2>
   <p class="note" id="mode"></p>
   <div id="today"></div>
+  <button class="add" id="addtoday" type="button" style="margin-top:12px">आज के लिए फोटो जोड़ें</button>
+  <input id="file2" type="file" accept="image/*" multiple hidden>
   <div class="tomorrow" id="tomorrow"></div>
  </section>
 
@@ -118,7 +120,7 @@ function pieceNode(it){
 function renderToday(){
  var now=new Date();var r=pick(now);var box=$("today");box.textContent="";
  if(!r.list.length){
-  box.appendChild(el("div","empty","अभी कोई कपड़ा नहीं है। दाईं तरफ से फोटो जोड़ें।"));
+  box.appendChild(el("div","empty","अभी कोई कपड़ा नहीं है। नीचे बटन से फोटो जोड़ें।"));
   $("mode").textContent="";
  }else{
   var g=el("div","today-grid");r.list.forEach(function(i){g.appendChild(pieceNode(i));});box.appendChild(g);
@@ -182,15 +184,18 @@ function shrink(file){
  });
 }
 $("addbtn").onclick=function(){$("file").click();};
-$("file").onchange=function(e){
+$("addtoday").onclick=function(){$("file2").click();};
+function handle(e,todayOnly){
  var files=Array.prototype.slice.call(e.target.files||[]);
  Promise.all(files.map(shrink)).then(function(arr){
-  arr.forEach(function(src){items.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),src:src,name:"",days:[]});});
+  arr.forEach(function(src){items.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),src:src,name:"",days:todayOnly?[new Date().getDay()]:[]});});
   if(!save()){items.splice(items.length-arr.length,arr.length);}
   renderAll();
  }).catch(function(){$("msg").textContent="फोटो पढ़ नहीं पाए, दूसरी फोटो आज़माइए।";});
  e.target.value="";
-};
+}
+$("file").onchange=function(e){handle(e,false);};
+$("file2").onchange=function(e){handle(e,true);};
 
 var lastKey="";
 function tick(){
